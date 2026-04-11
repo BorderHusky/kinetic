@@ -4,21 +4,30 @@
 //
 //  Created by Wesley Imundo on 4/1/26.
 //
-
 import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-        }
-        .padding()
-    }
-}
+        TabView {
+            HistoryView()
+                .tabItem {
+                    Label("History", systemImage: "clock")
+                }
 
-#Preview {
-    ContentView()
+            StartView()
+                .tabItem {
+                    Label("Start", systemImage: "play.circle.fill")
+                }
+
+            ExerciseLibraryView()
+                .tabItem {
+                    Label("Exercises", systemImage: "dumbbell")
+                }
+
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
+                }
+        }
+    }
 }
