@@ -31,6 +31,7 @@ struct ActiveExercise: Identifiable {
 struct StartView: View {
     @State private var showingWorkout = false
     @State private var workoutName = ""
+    @FocusState private var isTextFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -53,6 +54,7 @@ struct StartView: View {
                 TextField("Workout name (optional)", text: $workoutName)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal, 32)
+                    .focused($isTextFieldFocused)
 
                 Button {
                     showingWorkout = true
@@ -70,6 +72,10 @@ struct StartView: View {
                 Spacer()
             }
             .navigationTitle("Start")
+            .contentShape(Rectangle())
+            .onTapGesture {
+                isTextFieldFocused = false
+            }
             .fullScreenCover(isPresented: $showingWorkout, onDismiss: {
                 workoutName = ""
             }) {
@@ -613,3 +619,4 @@ struct ExercisePickerView: View {
         }
     }
 }
+
