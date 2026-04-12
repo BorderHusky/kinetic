@@ -97,24 +97,11 @@ struct ActiveWorkoutView: View {
     @State private var showingExercisePicker = false
     @State private var showingFinishAlert = false
     @State private var showingDiscardAlert = false
-    @State private var restTimerSeconds = 0
-    @State private var restTimerActive = false
-    @State private var restTimerTotal = 90
-    @State private var elapsedSeconds = 0
-    @State private var timer: Timer? = nil
     @State private var startDate = Date()
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if restTimerActive {
-                    RestTimerBar(
-                        secondsRemaining: $restTimerSeconds,
-                        totalSeconds: restTimerTotal,
-                        onDismiss: { stopRestTimer() }
-                    )
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                }
 
                 if exercises.isEmpty {
                     ContentUnavailableView(
@@ -127,7 +114,6 @@ struct ActiveWorkoutView: View {
                         ForEach($exercises) { $activeExercise in
                             ActiveExerciseSection(
                                 activeExercise: $activeExercise,
-                                onSetCompleted: { startRestTimer() },
                                 onDelete: {
                                     exercises.removeAll { $0.id == activeExercise.id }
                                 }
@@ -179,7 +165,6 @@ struct ActiveWorkoutView: View {
             }
             .alert("Discard Workout?", isPresented: $showingDiscardAlert) {
                 Button("Discard", role: .destructive) {
-                    timer?.invalidate()
                     dismiss()
                 }
                 Button("Cancel", role: .cancel) {}
@@ -188,13 +173,8 @@ struct ActiveWorkoutView: View {
             }
             .onAppear {
                 startDate = Date()
-                startElapsedTimer()
-            }
-            .onDisappear {
-                timer?.invalidate()
             }
         }
-        .animation(.easeInOut(duration: 0.25), value: restTimerActive)
     }
 
     // MARK: - Computed
@@ -208,12 +188,10 @@ struct ActiveWorkoutView: View {
     // MARK: - Finish: write everything to SwiftData at once
 
     private func finishWorkout() {
-        timer?.invalidate()
-
         let workout = Workout(
             date: startDate,
             name: initialName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : initialName.trimmingCharacters(in: .whitespaces),
-            duration: TimeInterval(elapsedSeconds)
+            duration: Date().timeIntervalSince(startDate)
         )
         modelContext.insert(workout)
 
@@ -240,37 +218,12 @@ struct ActiveWorkoutView: View {
         try? modelContext.save()
         dismiss()
     }
-
-    // MARK: - Timers
-
-    private func startElapsedTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            elapsedSeconds += 1
-            if restTimerActive && restTimerSeconds > 0 {
-                restTimerSeconds -= 1
-                if restTimerSeconds == 0 {
-                    stopRestTimer()
-                }
-            }
-        }
-    }
-
-    private func startRestTimer() {
-        restTimerSeconds = restTimerTotal
-        restTimerActive = true
-    }
-
-    private func stopRestTimer() {
-        restTimerActive = false
-        restTimerSeconds = 0
-    }
 }
 
 // MARK: - Active Exercise Section
 
 struct ActiveExerciseSection: View {
     @Binding var activeExercise: ActiveExercise
-    let onSetCompleted: () -> Void
     let onDelete: () -> Void
 
     @AppStorage("weightUnit") private var weightUnitRaw: String = WeightUnit.lbs.rawValue
@@ -284,8 +237,7 @@ struct ActiveExerciseSection: View {
             ForEach($activeExercise.sets) { $set in
                 ActiveSetRow(
                     set: $set,
-                    weightUnit: weightUnit,
-                    onCompleted: onSetCompleted
+                    weightUnit: weightUnit
                 )
             }
 
@@ -326,7 +278,6 @@ struct ActiveExerciseSection: View {
 struct ActiveSetRow: View {
     @Binding var set: ActiveSet
     let weightUnit: WeightUnit
-    let onCompleted: () -> Void
 
     @State private var showingEditSheet = false
 
@@ -363,7 +314,7 @@ struct ActiveSetRow: View {
         }
         .buttonStyle(.plain)
         .sheet(isPresented: $showingEditSheet) {
-            EditSetView(set: $set, weightUnit: weightUnit, onCompleted: onCompleted)
+            EditSetView(set: $set, weightUnit: weightUnit)
         }
     }
 }
@@ -373,17 +324,15 @@ struct ActiveSetRow: View {
 struct EditSetView: View {
     @Binding var set: ActiveSet
     let weightUnit: WeightUnit
-    let onCompleted: () -> Void
 
     @Environment(\.dismiss) private var dismiss
 
     @State private var weight: Double
     @State private var reps: Int
 
-    init(set: Binding<ActiveSet>, weightUnit: WeightUnit, onCompleted: @escaping () -> Void) {
+    init(set: Binding<ActiveSet>, weightUnit: WeightUnit) {
         _set = set
         self.weightUnit = weightUnit
-        self.onCompleted = onCompleted
         _weight = State(initialValue: set.wrappedValue.weight)
         _reps = State(initialValue: set.wrappedValue.reps > 0 ? set.wrappedValue.reps : 1)
     }
@@ -476,11 +425,11 @@ struct EditSetView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { save(complete: false) }
+                    Button("Done") { save() }
                 }
                 ToolbarItem(placement: .bottomBar) {
                     Button {
-                        save(complete: true)
+                        save()
                     } label: {
                         Label("Log Set", systemImage: "checkmark.circle.fill")
                             .font(.headline)
@@ -492,68 +441,11 @@ struct EditSetView: View {
         .presentationDetents([.medium])
     }
 
-    private func save(complete: Bool) {
+    private func save() {
         set.weight = weight
         set.reps = reps
-        set.isComplete = complete
-        if complete { onCompleted() }
+        set.isComplete = true
         dismiss()
-    }
-}
-
-// MARK: - Rest Timer Bar
-
-struct RestTimerBar: View {
-    @Binding var secondsRemaining: Int
-    let totalSeconds: Int
-    let onDismiss: () -> Void
-
-    var progress: Double {
-        guard totalSeconds > 0 else { return 0 }
-        return Double(secondsRemaining) / Double(totalSeconds)
-    }
-
-    var timeString: String {
-        let m = secondsRemaining / 60
-        let s = secondsRemaining % 60
-        return String(format: "%d:%02d", m, s)
-    }
-
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text("Rest")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                Spacer()
-
-                Text(timeString)
-                    .font(.headline)
-                    .monospacedDigit()
-
-                Spacer()
-
-                Button("Skip", action: onDismiss)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.accentColor)
-            }
-            .padding(.horizontal, 16)
-
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color(.systemGray5))
-                    Rectangle()
-                        .fill(Color.accentColor)
-                        .frame(width: geo.size.width * progress)
-                }
-            }
-            .frame(height: 4)
-        }
-        .padding(.top, 12)
-        .padding(.bottom, 8)
-        .background(Color(.systemBackground))
     }
 }
 
@@ -619,4 +511,3 @@ struct ExercisePickerView: View {
         }
     }
 }
-
