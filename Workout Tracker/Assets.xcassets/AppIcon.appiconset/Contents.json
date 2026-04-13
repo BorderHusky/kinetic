@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "WorkoutTracker_LightMode_1024.png",
+      "filename" : "Workout_Icon_Purple_1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
@@ -13,7 +13,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "WorkoutTracker_DarkMode_1024 (1).png",
+      "filename" : "Workout_Icon_Dark_Translucent_1024.png",
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
