@@ -90,7 +90,7 @@ struct WorkoutDetailView: View {
 
             // Exercise breakdown
             ForEach(workout.sortedExercises) { workoutExercise in
-                Section(workoutExercise.exercise?.name ?? "Unknown") {
+                Section(workoutExercise.exercise?.name ?? workoutExercise.exerciseName) {
                     ForEach(workoutExercise.sortedSets) { set in
                         HStack {
                             Text("Set \(set.setNumber)")

@@ -17,6 +17,7 @@ struct ExerciseLibraryView: View {
     @State private var searchText = ""
     @State private var selectedMuscleGroup: MuscleGroup? = nil
     @State private var showingAddExercise = false
+    @State private var exerciseToEdit: Exercise? = nil
 
     var filteredExercises: [Exercise] {
         exercises.filter { exercise in
@@ -31,10 +32,8 @@ struct ExerciseLibraryView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Muscle group filter
                 MuscleGroupFilterBar(selected: $selectedMuscleGroup)
 
-                // Exercise list
                 if filteredExercises.isEmpty {
                     ContentUnavailableView(
                         "No Exercises Found",
@@ -42,8 +41,29 @@ struct ExerciseLibraryView: View {
                         description: Text("Try a different search or filter.")
                     )
                 } else {
-                    List(filteredExercises) { exercise in
-                        ExerciseRow(exercise: exercise)
+                    List {
+                        ForEach(filteredExercises) { exercise in
+                            ExerciseRow(exercise: exercise)
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    exerciseToEdit = exercise
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        deleteExercise(exercise)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    Button {
+                                        exerciseToEdit = exercise
+                                    } label: {
+                                        Label("Edit", systemImage: "pencil")
+                                    }
+                                    .tint(.orange)
+                                }
+                        }
                     }
                     .listStyle(.plain)
                 }
@@ -62,7 +82,15 @@ struct ExerciseLibraryView: View {
             .sheet(isPresented: $showingAddExercise) {
                 AddExerciseView()
             }
+            .sheet(item: $exerciseToEdit) { exercise in
+                EditExerciseView(exercise: exercise)
+            }
         }
+    }
+
+    private func deleteExercise(_ exercise: Exercise) {
+        modelContext.delete(exercise)
+        try? modelContext.save()
     }
 }
 
@@ -217,8 +245,93 @@ struct AddExerciseView: View {
             isCustom: true
         )
         modelContext.insert(exercise)
-                try? modelContext.save()
-                onSave?(exercise)
-                dismiss()
+        try? modelContext.save()
+        onSave?(exercise)
+        dismiss()
+    }
+}
+
+// MARK: - Edit Exercise View
+
+struct EditExerciseView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    let exercise: Exercise
+
+    @State private var name: String
+    @State private var muscleGroup: MuscleGroup
+    @State private var equipment: Equipment
+    @State private var notes: String
+    @State private var showingNameError = false
+
+    init(exercise: Exercise) {
+        self.exercise = exercise
+        _name = State(initialValue: exercise.name)
+        _muscleGroup = State(initialValue: exercise.muscleGroup)
+        _equipment = State(initialValue: exercise.equipment)
+        _notes = State(initialValue: exercise.notes ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Name") {
+                    TextField("Exercise name", text: $name)
+                        .autocorrectionDisabled()
+                }
+
+                Section("Details") {
+                    Picker("Muscle Group", selection: $muscleGroup) {
+                        ForEach(MuscleGroup.allCases, id: \.self) { group in
+                            Text(group.rawValue).tag(group)
+                        }
+                    }
+
+                    Picker("Equipment", selection: $equipment) {
+                        ForEach(Equipment.allCases, id: \.self) { item in
+                            Text(item.rawValue).tag(item)
+                        }
+                    }
+                }
+
+                Section("Notes (optional)") {
+                    TextField("Any notes about this exercise", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
+                }
+            }
+            .navigationTitle("Edit Exercise")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .fontWeight(.semibold)
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .alert("Name Required", isPresented: $showingNameError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Please enter a name for the exercise.")
+            }
+        }
+    }
+
+    private func save() {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            showingNameError = true
+            return
+        }
+
+        exercise.name = trimmed
+        exercise.muscleGroup = muscleGroup
+        exercise.equipment = equipment
+        exercise.notes = notes.isEmpty ? nil : notes
+        try? modelContext.save()
+        dismiss()
     }
 }

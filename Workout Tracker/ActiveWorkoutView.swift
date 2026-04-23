@@ -197,10 +197,11 @@ struct ActiveWorkoutView: View {
 
         for (i, activeExercise) in exercises.enumerated() {
             let workoutExercise = WorkoutExercise(
-                order: i,
-                workout: workout,
-                exercise: activeExercise.exercise
-            )
+                            order: i,
+                            exerciseName: activeExercise.exercise.name,
+                            workout: workout,
+                            exercise: activeExercise.exercise
+                        )
             modelContext.insert(workoutExercise)
 
             for activeSet in activeExercise.sets {

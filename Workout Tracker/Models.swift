@@ -114,6 +114,7 @@ final class Workout {
 final class WorkoutExercise {
     var id: UUID
     var order: Int
+    var exerciseName: String
 
     var workout: Workout?
     var exercise: Exercise?
@@ -122,16 +123,18 @@ final class WorkoutExercise {
     var sets: [ExerciseSet] = []
 
     init(
-        id: UUID = UUID(),
-        order: Int,
-        workout: Workout? = nil,
-        exercise: Exercise? = nil
-    ) {
-        self.id = id
-        self.order = order
-        self.workout = workout
-        self.exercise = exercise
-    }
+            id: UUID = UUID(),
+            order: Int,
+            exerciseName: String = "",
+            workout: Workout? = nil,
+            exercise: Exercise? = nil
+        ) {
+            self.id = id
+            self.order = order
+            self.exerciseName = exerciseName
+            self.workout = workout
+            self.exercise = exercise
+        }
 
     var sortedSets: [ExerciseSet] {
         sets.sorted { $0.setNumber < $1.setNumber }
