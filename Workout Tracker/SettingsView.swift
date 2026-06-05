@@ -9,10 +9,15 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 import UIKit
+import Foundation
+// Re-importing Foundation is harmless and ensures WeightUnit is in scope
 
 // MARK: - Settings View (stub)
 
 struct SettingsView: View {
+    @AppStorage("weightUnit") private var weightUnitRaw: String = WeightUnit.lbs.rawValue
+    private var weightUnit: WeightUnit { WeightUnit(rawValue: weightUnitRaw) ?? .lbs }
+
     @Environment(\.modelContext) private var context
 
     @State private var exportURL: URL?
@@ -23,6 +28,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Units") {
+                    Picker("Weight Unit", selection: $weightUnitRaw) {
+                        ForEach(WeightUnit.allCases, id: \.rawValue) { unit in
+                            Text(unit == .lbs ? "Pounds (lbs)" : "Kilograms (kg)").tag(unit.rawValue)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
                 Section("Backup & Restore") {
                     Button("Export Data") {
                         exportDatabase(context: context) { url in
@@ -57,10 +70,15 @@ struct SettingsView: View {
             switch result {
             case .success(let url):
                 do {
+                    guard url.startAccessingSecurityScopedResource() else {
+                        importError = "Could not access file."
+                        return
+                    }
+                    defer { url.stopAccessingSecurityScopedResource() }
                     try importDatabase(from: url, context: context)
                     importError = nil
                 } catch {
-                    importError = error.localizedDescription
+                    importError = "\(error)"
                     print("Import failed: \(error)")
                 }
             case .failure(let error):
@@ -76,7 +94,7 @@ import Foundation
 
 private struct _ExerciseDTO: Codable, Identifiable { var id: UUID; var name: String; var muscleGroup: String; var equipment: String; var notes: String?; var isCustom: Bool }
 private struct _ExerciseSetDTO: Codable, Identifiable { var id: UUID; var setNumber: Int; var reps: Int; var weight: Double; var isComplete: Bool }
-private struct _WorkoutExerciseDTO: Codable, Identifiable { var id: UUID; var order: Int; var exerciseID: UUID; var sets: [_ExerciseSetDTO] }
+private struct _WorkoutExerciseDTO: Codable, Identifiable { var id: UUID; var order: Int; var exerciseID: UUID; var exerciseName: String?; var sets: [_ExerciseSetDTO] }
 private struct _WorkoutDTO: Codable, Identifiable { var id: UUID; var date: Date; var duration: TimeInterval?; var exercises: [_WorkoutExerciseDTO] }
 private struct _ExportBundle: Codable { var version: Int; var exportedAt: Date; var exercises: [_ExerciseDTO]; var workouts: [_WorkoutDTO] }
 
@@ -158,11 +176,12 @@ func importDatabase(from url: URL, context: ModelContext) throws {
             let workoutExercise: WorkoutExercise
             if let existing = workoutExerciseByID[we.id] {
                 existing.order = we.order
+                existing.exerciseName = we.exerciseName ?? ex.name
                 existing.workout = workout
                 existing.exercise = ex
                 workoutExercise = existing
             } else {
-                let new = WorkoutExercise(id: we.id, order: we.order, workout: workout, exercise: ex)
+                let new = WorkoutExercise(id: we.id, order: we.order, exerciseName: we.exerciseName ?? ex.name, workout: workout, exercise: ex)
                 context.insert(new)
                 workoutExerciseByID[we.id] = new
                 workoutExercise = new
