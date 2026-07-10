@@ -91,6 +91,8 @@ struct ActiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage("weightUnit") private var weightUnitRaw: String = WeightUnit.lbs.rawValue
+
     var initialName: String = ""
 
     @State private var exercises: [ActiveExercise] = []
@@ -188,6 +190,7 @@ struct ActiveWorkoutView: View {
     // MARK: - Finish: write everything to SwiftData at once
 
     private func finishWorkout() {
+        let preferredUnit = WeightUnit(rawValue: weightUnitRaw) ?? .lbs
         let workout = Workout(
             date: startDate,
             name: initialName.trimmingCharacters(in: .whitespaces).isEmpty ? nil : initialName.trimmingCharacters(in: .whitespaces),
@@ -512,3 +515,4 @@ struct ExercisePickerView: View {
         }
     }
 }
+
