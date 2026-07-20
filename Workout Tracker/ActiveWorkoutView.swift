@@ -212,6 +212,7 @@ struct ActiveWorkoutView: View {
                     setNumber: activeSet.setNumber,
                     reps: activeSet.reps,
                     weight: activeSet.weight,
+                    unit: preferredUnit,
                     isComplete: activeSet.isComplete,
                     workoutExercise: workoutExercise
                 )
