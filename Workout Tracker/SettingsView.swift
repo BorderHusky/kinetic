@@ -10,7 +10,6 @@ import SwiftData
 import UniformTypeIdentifiers
 import UIKit
 import Foundation
-// Re-importing Foundation is harmless and ensures WeightUnit is in scope
 
 // MARK: - Settings View (stub)
 
@@ -20,8 +19,6 @@ struct SettingsView: View {
 
     @Environment(\.modelContext) private var context
 
-    @State private var exportURL: URL?
-    @State private var showShareSheet = false
     @State private var showImporter = false
     @State private var importError: String?
 
@@ -61,11 +58,6 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
         }
-        .sheet(isPresented: $showShareSheet) {
-            if let url = exportURL {
-                ActivityViewController(url: url)
-            }
-        }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.json]) { result in
             switch result {
             case .success(let url):
@@ -88,7 +80,6 @@ struct SettingsView: View {
         }
     }
 }
-import Foundation
 
 // Fallback backup/restore implementations (can be removed if BackupRestore.swift is in target)
 
@@ -204,14 +195,4 @@ func importDatabase(from url: URL, context: ModelContext) throws {
     }
 
     try context.save()
-}
-
-struct ActivityViewController: UIViewControllerRepresentable {
-    let url: URL
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

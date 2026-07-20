@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Foundation
 
 // MARK: - In-memory models for active session
 
@@ -462,26 +463,16 @@ struct ExercisePickerView: View {
 
     let onSelect: (Exercise) -> Void
 
-        @State private var searchText = ""
-        @State private var selectedMuscleGroup: MuscleGroup? = nil
-        @State private var showingAddExercise = false
-
-    var filteredExercises: [Exercise] {
-        exercises.filter { exercise in
-            let matchesSearch = searchText.isEmpty ||
-                exercise.name.localizedCaseInsensitiveContains(searchText)
-            let matchesMuscleGroup = selectedMuscleGroup == nil ||
-                exercise.muscleGroup == selectedMuscleGroup
-            return matchesSearch && matchesMuscleGroup
-        }
-    }
+    @State private var searchText = ""
+    @State private var selectedMuscleGroup: MuscleGroup? = nil
+    @State private var showingAddExercise = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 MuscleGroupFilterBar(selected: $selectedMuscleGroup)
 
-                List(filteredExercises) { exercise in
+                List(exercises.filtered(searchText: searchText, muscleGroup: selectedMuscleGroup)) { exercise in
                     Button {
                         onSelect(exercise)
                         dismiss()
@@ -496,24 +487,23 @@ struct ExercisePickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $searchText, prompt: "Search exercises")
             .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel") { dismiss() }
-                            }
-                            ToolbarItem(placement: .primaryAction) {
-                                Button {
-                                    showingAddExercise = true
-                                } label: {
-                                    Image(systemName: "plus")
-                                }
-                            }
-                        }
-                        .sheet(isPresented: $showingAddExercise) {
-                            AddExerciseView(onSave: { exercise in
-                                onSelect(exercise)
-                                dismiss()
-                            })
-                        }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        showingAddExercise = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showingAddExercise) {
+                AddExerciseView(onSave: { exercise in
+                    onSelect(exercise)
+                    dismiss()
+                })
+            }
         }
     }
 }
-

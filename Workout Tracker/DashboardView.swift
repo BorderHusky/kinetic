@@ -81,7 +81,7 @@ struct DashboardView: View {
  
                         StatCard(
                             title: "Time",
-                            value: formatDuration(totalDuration),
+                            value: totalDuration.formattedAsDuration(style: .workout),
                             icon: "clock"
                         )
  
@@ -93,7 +93,7 @@ struct DashboardView: View {
  
                         StatCard(
                             title: "Avg Duration",
-                            value: totalWorkouts > 0 ? formatDuration(totalDuration / Double(totalWorkouts)) : "--",
+                            value: totalWorkouts > 0 ? (totalDuration / Double(totalWorkouts)).formattedAsDuration(style: .workout) : "--",
                             icon: "timer"
                         )
                     }
@@ -128,19 +128,6 @@ struct DashboardView: View {
     }
  
     // MARK: - Formatters
- 
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let totalMinutes = Int(duration) / 60
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            return "\(minutes)m"
-        } else {
-            return "<1m"
-        }
-    }
  
     private func formatWeight(_ weight: Double) -> String {
         if weight >= 1000 {
@@ -213,7 +200,7 @@ struct RecentWorkoutCard: View {
                 Label("\(workout.exercises.count) exercises", systemImage: "dumbbell")
  
                 if let duration = workout.duration {
-                    Label(formatDuration(duration), systemImage: "clock")
+                    Label(duration.formattedAsDuration(style: .workout), systemImage: "clock")
                 }
             }
             .font(.subheadline)
@@ -223,18 +210,5 @@ struct RecentWorkoutCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
- 
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let totalMinutes = Int(duration) / 60
-        let hours = totalMinutes / 60
-        let minutes = totalMinutes % 60
-        if hours > 0 {
-            return "\(hours)h \(minutes)m"
-        } else if minutes > 0 {
-            return "\(minutes)m"
-        } else {
-            return "<1m"
-        }
     }
 }

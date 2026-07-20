@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import Foundation
 
 // MARK: - Exercise Library View
 
@@ -19,22 +20,14 @@ struct ExerciseLibraryView: View {
     @State private var showingAddExercise = false
     @State private var exerciseToEdit: Exercise? = nil
 
-    var filteredExercises: [Exercise] {
-        exercises.filter { exercise in
-            let matchesSearch = searchText.isEmpty ||
-                exercise.name.localizedCaseInsensitiveContains(searchText)
-            let matchesMuscleGroup = selectedMuscleGroup == nil ||
-                exercise.muscleGroup == selectedMuscleGroup
-            return matchesSearch && matchesMuscleGroup
-        }
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 MuscleGroupFilterBar(selected: $selectedMuscleGroup)
 
-                if filteredExercises.isEmpty {
+                let filtered = exercises.filtered(searchText: searchText, muscleGroup: selectedMuscleGroup)
+
+                if filtered.isEmpty {
                     ContentUnavailableView(
                         "No Exercises Found",
                         systemImage: "dumbbell",
@@ -42,7 +35,7 @@ struct ExerciseLibraryView: View {
                     )
                 } else {
                     List {
-                        ForEach(filteredExercises) { exercise in
+                        ForEach(filtered) { exercise in
                             ExerciseRow(exercise: exercise)
                                 .contentShape(Rectangle())
                                 .onTapGesture {

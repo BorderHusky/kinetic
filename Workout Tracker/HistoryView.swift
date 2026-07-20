@@ -82,7 +82,7 @@ struct WorkoutDetailView: View {
             // Header section
             Section {
                 if let duration = workout.duration {
-                    LabeledContent("Duration", value: formatDuration(duration))
+                    LabeledContent("Duration", value: duration.formattedAsDuration(style: .detailed))
                 }
                 LabeledContent("Exercises", value: "\(workout.exercises.count)")
                 LabeledContent("Total Sets", value: "\(workout.totalSets)")
@@ -115,17 +115,5 @@ struct WorkoutDetailView: View {
         .listStyle(.insetGrouped)
         .navigationTitle(workout.name ?? "Workout")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func formatDuration(_ duration: TimeInterval) -> String {
-        let minutes = Int(duration) / 60
-        let seconds = Int(duration) % 60
-        if minutes == 0 {
-            return "\(seconds)s"
-        } else if seconds == 0 {
-            return "\(minutes)m"
-        } else {
-            return "\(minutes)m \(seconds)s"
-        }
     }
 }
