@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Xcode
+**/xcuserdata/
+*.xcuserstate
+DerivedData/
+*.xccheckout
+*.moved-aside
+
+# Build files
+.build/
+*.ipa
+*.dSYM
+
+# Secrets and credentials
+.env
+.env.*
+*.p12
+*.mobileprovision
+*.pem
